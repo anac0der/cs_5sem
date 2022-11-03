@@ -10,11 +10,23 @@ namespace Lab1
             string filename = "file.txt";
             UniformGrid grid = new UniformGrid(1.2, 2.15, 7);
             V1DataUGrid v = new V1DataUGrid("1", DateTime.Now, grid, V1Data.Field);
-            v.Save(filename);
-            Console.WriteLine("Сохраненный объект:\n" + v.ToLongString("F3"));
-            V1DataUGrid v1 = new V1DataUGrid("2", DateTime.Now);
-            V1DataUGrid.Load(filename, ref v1);
-            Console.WriteLine("Загруженный объект:\n" + v1.ToLongString("F3"));
+            if (v.Save(filename) == true)
+            {
+                Console.WriteLine("Сохраненный объект:\n" + v.ToLongString("F3"));
+                V1DataUGrid v1 = new V1DataUGrid("2", DateTime.Now);
+                if (V1DataUGrid.Load(filename, ref v1) == true)
+                {
+                    Console.WriteLine("Загруженный объект:\n" + v1.ToLongString("F3"));
+                }
+                else
+                {
+                    Console.WriteLine("Ошибка при загрузке объекта!");
+            }
+            }
+            else
+            {
+                Console.WriteLine("Ошибка при сохранении объекта!");
+            }
         }
         static void LinqQueriesChecking()
         {
@@ -25,7 +37,7 @@ namespace Lab1
             V1DataList list = new V1DataList("3", DateTime.Now);
             V1DataList list1 = new V1DataList("4", DateTime.Now);
             V1DataUGrid v2 = new V1DataUGrid("5", DateTime.Now);
-            V1DataUGrid v3 = new V1DataUGrid("6", DateTime.Now);
+            V1DataNUGrid v3 = new V1DataNUGrid("6", DateTime.Now);
             list.AddDefaults(0, 1, 5, V1Data.Field);
             V1DataCollection collection = new V1DataCollection() {v, v1, list, list1, v2, v3};
             Console.WriteLine(collection.ToLongString("F3"));
@@ -46,4 +58,3 @@ namespace Lab1
         }
     }
 }
-

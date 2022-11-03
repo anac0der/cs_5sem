@@ -1,10 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.Json;
 
 namespace Lab1
@@ -248,15 +244,22 @@ namespace Lab1
 
         public bool Save(string filename)
         {
-            StreamWriter file = new StreamWriter(filename, false);
+            StreamWriter? file = null;
             JsonSerializerOptions options = new JsonSerializerOptions
             {
                 IncludeFields = true
             };
             try 
             {
+                file = new StreamWriter(filename, false);
                 string grid = JsonSerializer.Serialize<UniformGrid>(this.grid, options);
-                string values = JsonSerializer.Serialize<Complex[]>(this.UGridValues, options);
+                double[] doubleArr = new double[this.UGridValues.Length * 2];
+                for(int i = 0; i < this.UGridValues.Length ; ++i)
+                {
+                    doubleArr[2 * i] = this.UGridValues[i].Real;
+                    doubleArr[2 * i + 1] = this.UGridValues[i].Imaginary;
+                }
+                string values = JsonSerializer.Serialize<double[]>(doubleArr, options);
                 string id = JsonSerializer.Serialize<string>(this.ObjectID, options);
                 string date = JsonSerializer.Serialize<DateTime>(this.date, options);
                 if(grid == null || values == null || id == null || date == null)
@@ -270,24 +273,23 @@ namespace Lab1
             }
             catch (Exception ex) {
                 Console.WriteLine($"Исключение: {ex.Message}");
+                if (file != null) file.Close();
                 return false;
             }
-            finally
-            {
-                if (file != null) file.Close();    
-            }
+            if (file != null) file.Close();    
             return true;
         }
 
         public static bool Load(string filename, ref V1DataUGrid v1)
         {
-            StreamReader file = new StreamReader(filename);
+            StreamReader? file = null;            
             JsonSerializerOptions options = new JsonSerializerOptions
             {
                 IncludeFields = true
             };
             try
             {
+                file = new StreamReader(filename);
                 string? jsonId = file.ReadLine();
                 string? jsonDate = file.ReadLine();
                 string? jsonGrid = file.ReadLine();
@@ -299,17 +301,21 @@ namespace Lab1
                 v1.ObjectID = JsonSerializer.Deserialize<string>(jsonId, options);
                 v1.date = JsonSerializer.Deserialize<DateTime>(jsonDate, options);
                 v1.grid = JsonSerializer.Deserialize<UniformGrid>(jsonGrid, options);
-                v1.UGridValues = JsonSerializer.Deserialize<Complex[]>(jsonValues, options);
+                double[] doubleArr = JsonSerializer.Deserialize<double[]>(jsonValues, options);
+                Complex[] UGValues = new Complex[doubleArr.Length / 2];
+                for(int i = 0; i < doubleArr.Length / 2; ++i)
+                {
+                    UGValues[i] = new Complex(doubleArr[2 * i], doubleArr[2 * i + 1]);
+                }
+                v1.UGridValues = UGValues;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Исключение: {ex.Message}");
+                if (file != null) file.Close();
                 return false;
             }
-            finally
-            {
-                if (file != null) file.Close();
-            }
+            if (file != null) file.Close();
             return true;
         }
 
