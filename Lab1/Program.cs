@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Xml.Linq;
+using System.Runtime.InteropServices;
 
 namespace Lab1
 {
@@ -51,10 +52,28 @@ namespace Lab1
             }
         }
         static void Main(string[] args)
-        {
-            Console.WriteLine(Directory.GetCurrentDirectory());
-            ObjectSavingAndLoading();
-            LinqQueriesChecking();
+        {     
+            double[] nodes = { 1, 1.4, 2};
+            double[] new_nodes = { 1, 1.1, 1.4, 1.6, 2};
+            V1DataNUGrid grid = new V1DataNUGrid("1", DateTime.Now, nodes, V1Data.Field);
+            double left_der = 3;
+            double right_der = 12;
+            V1DataNUGridSpline InterpolatingGrid = new V1DataNUGridSpline(grid, new_nodes, left_der, right_der, 1, 2);
+            InterpolatingGrid.InterpolateGrid();
+            Console.WriteLine(InterpolatingGrid.ToLongString("F3"));
+            InterpolatingGrid.Save("file1.txt", "F4");
+
+            double[] new_nodes1 = { 1, 1.4, 1.5, 2};
+            V1DataNUGridSpline InterpolatingGrid1 = new V1DataNUGridSpline(grid, new_nodes1, left_der, right_der, 1, 2);
+            V1DataNUGridSpline InterpolatingGrid2 = new V1DataNUGridSpline(grid, new_nodes1, left_der + 1, right_der, 1, 2);
+            InterpolatingGrid1.InterpolateGrid();
+            InterpolatingGrid2.InterpolateGrid();
+            for(int i = 0; i < new_nodes1.Length; ++i)
+            {
+                Console.WriteLine($"x = {new_nodes1[i]} diff = {(InterpolatingGrid1.NewGridValues[i] - InterpolatingGrid2.NewGridValues[i]).ToString("F3")} " +
+                    $"derivative diff = {(InterpolatingGrid1.NewGridDerValues[i] - InterpolatingGrid2.NewGridDerValues[i]).ToString("F3")}");
+            }
+            Console.WriteLine($"Integral diff = {(InterpolatingGrid1.Integral - InterpolatingGrid2.Integral).ToString("F3")}");
         }
     }
 }

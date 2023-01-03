@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Lab1
@@ -10,7 +11,7 @@ namespace Lab1
     {
         public static Complex Field(double x)
         {
-            return new Complex(Math.Tan(x), Math.Log(x + 1));
+            return new Complex(x * x * x, x * x * x);
         }
         public string ObjectID { get; set; }
         public DateTime date { get; set; }
@@ -473,5 +474,82 @@ namespace Lab1
             }
             return pattern;
         }
+    }
+
+    class V1DataNUGridSpline
+    {
+        public V1DataNUGrid? Grid{ get; private set; }
+        public double LeftDer { get; private set; }
+        public double RightDer { get; private set; }
+        public double[]? NewGrid { get; private set; }
+        public Complex[]? NewGridValues { get; private set; }
+        public Complex[]? NewGridDerValues { get; private set; }
+        public double LeftIntegralBound { get; private set; }
+        public double RightIntegralBound { get; private set; }
+        public Complex Integral { get; private set; }
+        public int isError = 0;
+
+        public V1DataNUGridSpline(V1DataNUGrid grid, double[] newGrid, double leftDer, double rightDer, double leftIntBound, double rightIntBound)
+        {
+            Grid = grid;
+            NewGrid = newGrid;
+            LeftDer = leftDer;
+            RightDer = rightDer;
+            LeftIntegralBound = leftIntBound;
+            RightIntegralBound = rightIntBound;
+            NewGridValues = new Complex[newGrid.Length];
+            NewGridDerValues = new Complex[newGrid.Length];
+        }
+
+        public string ToLongString(string format)
+        {
+            string pattern = $"Информация об объекте V1DataNUGridSpline:\n";
+            pattern += Grid.ToLongString(format);
+            pattern += $"Первая производная на левом конце отрезка: {LeftDer}\n";
+            pattern += $"Первая производная на правом конце отрезка: {RightDer}\n";
+            pattern += $"Отрезок интегрирования: [{LeftIntegralBound}, {RightIntegralBound}]\n";
+            pattern += $"Значение интеграла: {Integral.ToString(format)}\n";
+            for(int i = 0; i < NewGridValues.Length; ++i) 
+            {
+                pattern += $"x = {NewGrid[i].ToString(format)} value = {NewGridValues[i].ToString(format)} derivative = {NewGridDerValues[i].ToString(format)}\n";
+            }
+            return pattern;
+        }
+
+        public void Save(string filename, string format)
+        {
+            StreamWriter file = new StreamWriter(filename, false);
+            file.Write(ToLongString(format));
+            file.Close();
+        }
+
+        public void InterpolateGrid()
+        {
+            double[] values = new double[2 * Grid.NuGridValues.Length];
+            for (int i = 0; i < Grid.NuGridValues.Length; ++i)
+            {
+                values[i] = Grid.NuGridValues[i].Real;
+                values[i + Grid.NuGridValues.Length] = Grid.NuGridValues[i].Imaginary;
+            }
+            double[] derivatives = { LeftDer, RightDer };
+            double[] result = new double[4 * NewGrid.Length + 2];
+            int status = spline_interpolation(Grid.NuGridNodes.Length, result, Grid.NuGridNodes, values, derivatives, NewGrid.Length, NewGrid, LeftIntegralBound, RightIntegralBound);
+            if (status == 0)
+            {
+                Integral = new Complex(result[4 * NewGrid.Length], result[4 * NewGrid.Length + 1]);
+                for (int i = 0; i < NewGrid.Length; ++i)
+                {
+                    NewGridValues[i] = new Complex(result[2 * i], result[2 * i + 2 * NewGrid.Length]);
+                    NewGridDerValues[i] = new Complex(result[2 * i + 1], result[2 * i + 1 + 2 * NewGrid.Length]);
+                }
+            }
+            else
+            {
+                isError = status;
+            }     
+        }
+
+        [DllImport(@"Dll1.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int spline_interpolation(int length, double[] res_arr, double[] x, double[] y, double[] derivatives, int new_length, double[] new_x, double a, double b);
     }
 }
